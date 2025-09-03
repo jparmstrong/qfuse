@@ -131,12 +131,20 @@ static const struct fuse_operations qfuse_oper = {
 };
 
 void* loop(void* _) {
+    double elapsed = 0.0;
     while (1) {
-        sleep(5);
+        sleep(60);
+        struct timeval start, end;
+        gettimeofday(&start, NULL);
+        
         pthread_rwlock_wrlock(&tree_rwlock);
         scan_paths(configs, root);
         tree_gc(root);
         pthread_rwlock_unlock(&tree_rwlock);
+
+        gettimeofday(&end, NULL);
+        double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+        INFO("Loop completed in %.3f seconds\n", elapsed);
     }
     return NULL;
 }

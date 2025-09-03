@@ -66,6 +66,29 @@ ConfigEntry* load_config(const char *file) {
         strncpy(current->path, token, sizeof(current->path) - 1);
         current->path[sizeof(current->path) - 1] = '\0';
   
+        char* par_path;
+        asprintf(&par_path, "%s/par.txt", current->path);
+        INFO("Expanding par.txt in %s\n", par_path);
+        if (access(par_path, F_OK) == 0) {
+            FILE* par_file = fopen(par_path, "r");
+            if (par_file) {
+                char par_line[4096];
+                while (fgets(par_line, sizeof(par_line), par_file)) {
+                    par_line[strcspn(par_line, "\n")] = 0; // Remove newline
+                    if (strlen(par_line) > 0) {
+                        ConfigEntry* new_entry = (ConfigEntry*)malloc(sizeof(ConfigEntry));
+                        _strncpy(new_entry->database, current->database);
+                        _strncpy(new_entry->path, par_line);
+                        new_entry->next = current->next;
+                        current->next = new_entry;
+                        current = new_entry;
+                    }
+                }
+                fclose(par_file);
+            }
+        }
+        free(par_path);
+
         DEBUG("Loaded config: database='%s', path='%s'\n", current->database, current->path);
     }
 
@@ -99,7 +122,7 @@ void scan_path(const char *path, Node *parent, const char* database) {
     if (!dir) return;
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, "par.txt") == 0) continue;
         char full_path[4096];
         snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
         DEBUG("Scanning %s\n", full_path);

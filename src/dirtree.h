@@ -130,7 +130,7 @@ static Node* tree_find(Node* current, const char* path) {
 }
 
 static void tree_qsort(Node* node) {
-    if (node == NULL || !node->is_directory || node->num_children <= 1) {
+    if (node == NULL || !node->is_directory) {
         return;
     }
     // Sort children by name
