@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 
-#define DISABLE_DEBUG
+// #define DISABLE_DEBUG
 // #define DISABLE_INFO
 
 #ifdef DISABLE_DEBUG

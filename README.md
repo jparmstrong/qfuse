@@ -26,5 +26,9 @@ make clean build
 
 # run using "vdb" folder mount
 ./build/qfuse config.csv -f vdb
+
+
+# to unmount 
+fusermount -u vdb
 ```
 

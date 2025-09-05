@@ -1,8 +1,8 @@
 FUSE_CFLAGS := $(shell pkg-config --cflags fuse3)
 FUSE_LIBS := $(shell pkg-config --libs fuse3)
 
-CFLAGS_DEV := -g -O0 -Wall -Wextra -DDISABLE_LOG
-CFLAGS_REL := -O3 -march=native -flto -fomit-frame-pointer -Wall -Wextra -DDISABLE_LOG
+CFLAGS_DEV := -g -O0 -Wall -Wextra -DDISABLE_DEBUG
+CFLAGS_REL := -O3 -march=native -flto -fomit-frame-pointer -Wall -Wextra -DDISABLE_DEBUG
 
 .PHONY: all
 all: clean build

@@ -7,29 +7,31 @@
 
 // Represents a node in the directory tree (either a directory or a file)
 typedef struct Node {
-    const char* name;      // Name of the directory or file
-    int is_directory;      // 1 if a directory, 0 if a file
-    int num_children;      // Number of children
-    int capacity_children; // Current capacity of the children array
+    const char* name;                 // Name of the directory or file
+    unsigned short num_children;      // Number of children
+    unsigned short capacity_children; // Current capacity of the children array
+    unsigned short level;             // Depth level in the tree (0 = root)
+    unsigned short is_directory;      // 1 if a directory, 0 if a file
+    struct Node **children;           // Array of pointers to child nodes
     const char* orig_path;
-    struct Node **children;// Array of pointers to child nodes
 } Node;
 
 // Function to create a new node
-static Node* _create_node(const char* name, int is_dir, const char* orig_path) {
+static Node* _create_node(const char* name, int is_dir, const char* orig_path, unsigned short level) {
     Node* node = (Node*)malloc(sizeof(Node));
     if (node == NULL) {
         perror("Failed to allocate memory for node");
         exit(EXIT_FAILURE);
     }
 
-    DEBUG("Creating node: %s (is_dir=%d) to %s\n", name, is_dir, orig_path);
+    DEBUG("Creating node: %s (is_dir=%d) to %s at level %d\n", name, is_dir, orig_path, level);
     node->name = strdup(name);
     node->orig_path = (!is_dir) ? strdup(orig_path) : NULL;
     node->is_directory = is_dir;
     node->children = NULL;
     node->num_children = 0;
     node->capacity_children = 0;
+    node->level = level;
 
     return node;
 }
@@ -86,12 +88,14 @@ static void _add_child(Node* parent, Node* child) {
         parent->capacity_children = new_capacity;
     }
 
+    child->level = parent->level + 1;
     parent->children[parent->num_children++] = child;
     DEBUG("Adding child %s (%s) to parent %s [%d/%d]\n", child->name, child->orig_path, parent->name, parent->num_children, parent->capacity_children);
 }
 
 static Node* tree_add_dir(Node* parent, const char* name) {
-    Node* node = _create_node(name, 1, NULL);
+    unsigned short level = (parent == NULL) ? 0 : parent->level + 1;
+    Node* node = _create_node(name, 1, NULL, level);
     if (parent == NULL || !parent->is_directory) {
         return node;
     }
@@ -100,7 +104,8 @@ static Node* tree_add_dir(Node* parent, const char* name) {
 }
 
 static Node* tree_add_file(Node* parent, const char* name, const char* orig_path) {
-    Node* node = _create_node(name, 0, orig_path);
+    unsigned short level = parent->level + 1;
+    Node* node = _create_node(name, 0, orig_path, level);
     _add_child(parent, node);
     return node;
 }

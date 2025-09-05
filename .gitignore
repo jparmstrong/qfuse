@@ -3,3 +3,4 @@ build/
 mount/
 perf.*
 valgrind.*
+qfuse.log

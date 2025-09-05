@@ -16,7 +16,7 @@
 }
 
 typedef struct ConfigEntry {
-    char database[128];
+    char database[16];
     char path[4096];
     struct ConfigEntry *next;
 } ConfigEntry;

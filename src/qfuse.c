@@ -12,21 +12,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <sys/inotify.h>
+#include <stdatomic.h>
 
 #include "qfuse.h"
 
-Node* root = NULL;
-ConfigEntry* configs = NULL;
+_Atomic(Node*) root = NULL;
+_Atomic(Node*) root2 = NULL; // for double buffering
 
-static pthread_rwlock_t tree_rwlock = PTHREAD_RWLOCK_INITIALIZER;
+ConfigEntry* configs = NULL;
 
 static int qfuse_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
     memset(stbuf, 0, sizeof(struct stat));
-    pthread_rwlock_rdlock(&tree_rwlock);
     Node *node = tree_find(root, path);
     if (!node) {
-        pthread_rwlock_unlock(&tree_rwlock);
         (void)fi;
         return -ENOENT;
     }
@@ -47,7 +45,6 @@ static int qfuse_getattr(const char *path, struct stat *stbuf, struct fuse_file_
         stbuf->st_atime = st.st_atime;
         stbuf->st_ctime = st.st_ctime;
     }
-    pthread_rwlock_unlock(&tree_rwlock);
     (void)fi;
     return 0;
 }
@@ -61,7 +58,6 @@ static int qfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     filler(buf, ".", NULL, 0, 0);
     filler(buf, "..", NULL, 0, 0);
     
-    pthread_rwlock_rdlock(&tree_rwlock);
     Node *dir = tree_find(root, path);
     if (dir && dir->is_directory) {
         for (int i = 0; i < dir->num_children; i++) {
@@ -72,20 +68,15 @@ static int qfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
             filler(buf, child->name, NULL, 0, 0);
         }
     }
-    pthread_rwlock_unlock(&tree_rwlock);
     return 0;
 }
 
 static int qfuse_open(const char *path, struct fuse_file_info *fi) {
-    pthread_rwlock_rdlock(&tree_rwlock);
     Node *node = tree_find(root, path);
     if (!node || node->is_directory) {
-        pthread_rwlock_unlock(&tree_rwlock);
         return -ENOENT;
     }
-    const char* orig_path = node->orig_path; // Copy before unlock
-    pthread_rwlock_unlock(&tree_rwlock);
-    
+    const char* orig_path = node->orig_path;
     int fd = open(orig_path, O_RDONLY);
     if (fd == -1) {
         fprintf(stderr, "open error %s -> %s: %s\n", path, orig_path, strerror(errno));
@@ -131,17 +122,20 @@ static const struct fuse_operations qfuse_oper = {
 };
 
 void* loop(void* _) {
-    double elapsed = 0.0;
     while (1) {
         sleep(60);
         struct timeval start, end;
         gettimeofday(&start, NULL);
         
-        pthread_rwlock_wrlock(&tree_rwlock);
-        scan_paths(configs, root);
-        tree_gc(root);
-        pthread_rwlock_unlock(&tree_rwlock);
-
+        if (root2 == NULL) {
+            root2 = tree_add_dir(NULL, "root");
+        }
+        scan_paths(configs, root2);
+        tree_gc(root2);
+        
+        // Swap trees
+        root = atomic_exchange(&root, root2);
+        
         gettimeofday(&end, NULL);
         double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
         INFO("Loop completed in %.3f seconds\n", elapsed);
