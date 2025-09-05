@@ -4,3 +4,4 @@ mount/
 perf.*
 valgrind.*
 qfuse.log
+vdb/*

@@ -65,7 +65,7 @@ static void _free_child(Node* child) {
 // Function to add a child to a directory node
 static void _add_child(Node* parent, Node* child) {
     if (!parent->is_directory) {
-        fprintf(stderr, "Error: Cannot add child to a file node.\n");
+        ERROR("Error: Cannot add child to a file node.\n");
         return;
     }
 

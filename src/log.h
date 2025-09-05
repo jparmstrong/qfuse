@@ -30,3 +30,15 @@
   printf((msg), ##__VA_ARGS__); \
 }
 #endif
+
+#ifdef DISABLE_ERROR
+    #define ERROR(fmt, ...) (0)
+#else
+#define ERROR(msg, ...) { \
+  struct timeval tv; \
+  gettimeofday(&tv, NULL); \
+  struct tm *tm_info = localtime(&tv.tv_sec); \
+  fprintf(stderr, "[%02d:%02d:%02d.%03ld] ERROR :: ", tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec, tv.tv_usec / 1000); \
+  fprintf(stderr, (msg), ##__VA_ARGS__); \
+}
+#endif

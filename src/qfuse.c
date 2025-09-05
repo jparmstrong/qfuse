@@ -34,7 +34,7 @@ static int qfuse_getattr(const char *path, struct stat *stbuf, struct fuse_file_
     } else {
         struct stat st;
         if(stat(node->orig_path, &st) != 0) {
-            fprintf(stderr, "Unable to get file size for %s -> %s: %s\n", path, node->orig_path, strerror(errno));
+            ERROR("Unable to get file size for %s -> %s: %s\n", path, node->orig_path, strerror(errno));
             return -1;
         }
         stbuf->st_mode = S_IFREG | 0444;
@@ -79,7 +79,7 @@ static int qfuse_open(const char *path, struct fuse_file_info *fi) {
     const char* orig_path = node->orig_path;
     int fd = open(orig_path, O_RDONLY);
     if (fd == -1) {
-        fprintf(stderr, "open error %s -> %s: %s\n", path, orig_path, strerror(errno));
+        ERROR("open error %s -> %s: %s\n", path, orig_path, strerror(errno));
         return -errno;
     }
     DEBUG("open %s (orig: %s) -> fd %d\n", path, orig_path, fd);
@@ -94,8 +94,7 @@ static int qfuse_read(const char *path, char *buf, size_t size, off_t offset,
     if (fd <= 0) {
         return -EBADF;
     }
-    lseek(fd, offset, SEEK_SET);
-    ssize_t res = read(fd, buf, size);
+    ssize_t res = pread(fd, buf, size, offset);
     if (res == -1) {
         DEBUG("read error %s: %s\n", path, strerror(errno));
         return -errno;
@@ -145,7 +144,7 @@ void* loop(void* _) {
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        fprintf(stderr, "Usage: %s <config.csv> <mountpoint>\n", argv[0]);
+        ERROR("Usage: %s <config.csv> <mountpoint>\n", argv[0]);
         return 1;
     }
 
