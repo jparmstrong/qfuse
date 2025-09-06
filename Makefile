@@ -28,6 +28,11 @@ run: build
 
 # -- Debugging and Profiling --
 
+test:
+	mkdir -p test
+	cd test
+	$QHOME/l64/q build.q
+
 valgrind: build
 	valgrind --leak-check=full \
 		--show-leak-kinds=all \
