@@ -1,0 +1,3 @@
+/home/jp/sync/code/qfuse/test/segments/par_1
+/home/jp/sync/code/qfuse/test/segments/par_2
+/home/jp/sync/code/qfuse/test/segments/par_3

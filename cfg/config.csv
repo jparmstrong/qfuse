@@ -1,0 +1,5 @@
+namespace,source
+#octo,/octo/data/kdb_mktdata
+bars,/home/jp/data/kdb/bars
+ref,/home/jp/data/kdb/ref
+test,/home/jp/code/qfuse/test/hdb
