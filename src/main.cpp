@@ -54,6 +54,7 @@ std::vector<Config> readConfig(const std::string& config_file) {
 
 void scanDir(const std::string& ns, const std::string& rootDir) {
     INFO("Scanning {}", rootDir);
+    u_int64_t start = utime();
     for (const auto& entry : fs::recursive_directory_iterator(rootDir)) {
         std::string rel_path = fs::relative(entry.path(), rootDir).string();
         if (rel_path.empty()) continue;
@@ -61,6 +62,8 @@ void scanDir(const std::string& ns, const std::string& rootDir) {
         TRACE("{} : {}", isDir, rel_path);
         model.add(rel_path, rootDir, ns, isDir);
     }
+    double elapsed = static_cast<double> (utime()-start) / 1'000'000;
+    DEBUG("Scan took: {:.3f} secs", elapsed);
 }
 
 void scanDirsInConfigs(const Config& config) {

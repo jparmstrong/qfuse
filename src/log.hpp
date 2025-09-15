@@ -21,6 +21,10 @@
 
 #include <fmt/core.h>
 
+uint64_t utime() {
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+}
+
 inline std::string _logTime() {
     auto now = std::chrono::system_clock::now();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -55,3 +59,4 @@ inline std::string _logTime() {
 #endif
 
 #define ERROR(fmt_str, ...) fmt::print("{} ERROR | " fmt_str "\n", _logTime(), __VA_ARGS__)
+
