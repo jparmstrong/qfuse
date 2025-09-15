@@ -24,32 +24,24 @@
 
 #include "log.hpp"
 
-struct Table {
-    std::string name;
-    std::vector<std::string> columns;
-};
-
-// using TableOrDir = std::variant<Table, DirNode>;
-
 struct DirNode {
     std::string name;
-    bool isDir = true;
-    unsigned short level = 0;
-    std::string originalPath;
+    uint8_t isDir = true;  // larger, to pack
     std::vector<DirNode> children;
+    std::string originalPath;
 
     DirNode() = default;
 
-    DirNode(const std::string& name, unsigned short level, bool isDir, const std::string& originalPath, const std::vector<DirNode>& children)
-        : name(name), isDir(isDir), level(level), originalPath(originalPath), children(children) {}
+    DirNode(const std::string& name, bool isDir, const std::vector<DirNode>& children, const std::string& originalPath)
+        : name(name), isDir(isDir), children(children), originalPath(originalPath) {}
 };
 
 class Model {
 public:
     Model() {
-        this->root = {"root", 0, true, "", {}};
+        this->root = {"root", true, {}, ""};
     }
-
+ 
     ~Model() = default;
 
     DirNode* find(const std::string& path) {
@@ -72,23 +64,20 @@ public:
         std::stringstream ss(path);
         std::string token;
         DirNode* current = &root;
-        unsigned short level = 1;
         std::vector<std::string> tokens;
         while (std::getline(ss, token, '/')) {
             if (!token.empty()) tokens.push_back(token);
         }
         for (size_t i = 0; i < tokens.size(); ++i) {
             bool nodeIsDir = (i == tokens.size() - 1) ? isDir : true;
-           // const std::string nodeName = (level == 2 && nodeIsDir) ? () : tokens[i];
             auto it = std::find_if(
                 current->children.begin(), current->children.end(),
                 [&](const DirNode& node) { return node.name == tokens[i] || node.name == ns + "." + tokens[i]; }
             );
-
             // doesn't exist, create
             if (it == current->children.end()) {
                 std::string opath = (!nodeIsDir) ? rootDir + "/" + path : "";
-                current->children.push_back(DirNode(tokens[i], level, nodeIsDir, opath, {}));
+                current->children.push_back(DirNode(tokens[i], nodeIsDir, {}, opath));
                 current = &current->children.back();
             } else if (nodeIsDir && has_dot_d(&(*it))) {
                 it->name = ns + "." + tokens[i];
@@ -96,7 +85,6 @@ public:
             } else {
                 current = &(*it);
             }
-            ++level;
         }
     }
 
@@ -143,7 +131,7 @@ public:
 
     void print(const DirNode& node, int indent = 0) const {
         std::string indent_str(indent * 2, ' ');
-        DEBUG("{}{} ({}) -> {}", indent_str, (node.isDir ? "[D] " : "[F] "), node.name, node.level, node.originalPath);
+        DEBUG("{} {} -> {}", indent_str, (node.isDir ? "[D]" : "[F]"), node.name, node.originalPath);
         if (!node.isDir) {
             return;
         }
