@@ -51,7 +51,7 @@ static int fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     DirNode *node = model.find(path);
     if(node && node->isDir) {
-        for(auto child : node->children) {
+        for(const auto& [key, child] : node->children) {
             filler(buf, child.name.c_str(), NULL, 0, (fuse_fill_dir_flags) 0);
         }
     }

@@ -18,6 +18,7 @@
 #include <filesystem>
 #include <fstream>
 #include <csignal>
+#include <dirent.h>
 
 #include "model.hpp"
 static Model model;
@@ -52,19 +53,75 @@ std::vector<Config> readConfig(const std::string& config_file) {
     return config;
 }
 
+int dirSize(const std::string& path) {
+    int count = 0;
+    DIR* dir = opendir(path.c_str());
+    if (!dir) return 0;
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+        ++count;
+    }
+    closedir(dir);
+    return count;
+}
+
+void _scanDirIter(const std::string& ns, const std::string& rootDir, const std::string& path) {
+    std::string fullPath = rootDir + "/" + path;
+    DIR *dir = opendir(fullPath.c_str());
+    if (!dir) {
+        closedir(dir);
+        return;
+    }
+    struct dirent *entry;
+    bool isDir;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, "par.txt") == 0) continue;
+        std::string relPath = path + "/" + entry->d_name;
+        TRACE("> PATH: {}", relPath);
+        if (entry->d_type == DT_DIR) {
+            isDir = true;
+        } else if (entry->d_type == DT_REG) {
+            isDir = false;
+        } else {
+            struct stat st;
+            if (stat((rootDir + "/" + relPath).c_str(), &st) == -1) continue;
+            isDir = S_ISDIR(st.st_mode);
+        }
+        int dirCount = (isDir) ? dirSize(rootDir + "/" + relPath) : 0;
+    //    DEBUG("{} : {} : {}", isDir ? "📁" : "  ", dirCount, relPath);
+        model.add(ns, rootDir, relPath, isDir, dirCount);
+        if(isDir) _scanDirIter(ns, rootDir, relPath);
+    }
+    closedir(dir);
+}
+
 void scanDir(const std::string& ns, const std::string& rootDir) {
     INFO("Scanning {}", rootDir);
     u_int64_t start = utime();
-    for (const auto& entry : fs::recursive_directory_iterator(rootDir)) {
-        std::string rel_path = fs::relative(entry.path(), rootDir).string();
-        if (rel_path.empty()) continue;
-        bool isDir = entry.is_directory();
-        TRACE("{} : {}", isDir, rel_path);
-        model.add(rel_path, rootDir, ns, isDir);
-    }
-    double elapsed = static_cast<double> (utime()-start) / 1'000'000;
-    DEBUG("Scan took: {:.3f} secs", elapsed);
+    _scanDirIter(ns, rootDir, "");
+    DEBUG("Scan took: {:.3f} secs", static_cast<double> (utime()-start) / 1'000'000);
 }
+
+// int dirSize(const std::string& path) {
+//     int count = 0;
+//     for (auto entry : fs::directory_iterator(path))
+//         count++;
+//     return count;
+// }
+
+// void scanDir(const std::string& ns, const std::string& rootDir) {
+//     INFO("Scanning {}", rootDir);
+//     u_int64_t start = utime();
+//     for (const auto& entry : fs::recursive_directory_iterator(rootDir)) {
+//         std::string relPath = fs::relative(entry.path(), rootDir).string();
+//         if (relPath.empty()) continue;
+//         int dirCount = (entry.is_directory()) ? dirSize(entry.path()) : 0;
+//         TRACE("{} : {}", isDir ? "📁" : "  ", relPath);
+//         model.add(ns, rootDir, relPath, entry.is_directory(), dirCount);
+//     }
+//     DEBUG("Scan took: {:.3f} secs", static_cast<double> (utime()-start) / 1'000'000);
+// }
 
 void scanDirsInConfigs(const Config& config) {
     fs::path par_file = fs::path(config.dir) / "par.txt";
