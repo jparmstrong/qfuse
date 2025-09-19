@@ -18,8 +18,6 @@
 #include <vector>
 #include <unordered_map>
 #include <sstream>
-#include <memory>
-#include <variant>
 #include <algorithm>
 #include <iostream>
 
@@ -28,12 +26,13 @@
 struct DirNode {
     std::string name;
     std::unordered_map<std::string, DirNode> children;
+    DirNode* parent;
     std::string originalPath;
 
     DirNode() = default;
 
-    DirNode(const std::string& name, const std::unordered_map<std::string, DirNode>& children, const std::string& originalPath)
-        : name(name), children(children), originalPath(originalPath) {}
+    DirNode(const std::string& name, const std::unordered_map<std::string, DirNode>& children, DirNode* parent, const std::string& originalPath)
+        : name(name), children(children), parent(parent), originalPath(originalPath) {}
 };
 
 class Model {
@@ -41,7 +40,7 @@ public:
     Model() {
         auto c = std::unordered_map<std::string, DirNode>();
         c.reserve(512);
-        this->root = {"root", c, ""};
+        this->root = {"root", c, nullptr, ""};
     }
  
     ~Model() = default;
@@ -70,11 +69,24 @@ public:
         }
         DirNode* current = &root;
         for (size_t i = 0; i < tokens.size(); ++i) {
-            if (auto search = current->children.find(tokens[i]) ; search != current->children.end() ) {
+            if (auto search = current->children.find(ns + "." + tokens[i]) ; search != current->children.end() ) {
+                current = &(search->second);
+            } else if (auto search = current->children.find(tokens[i]) ; search != current->children.end() ) {
                 current = &(search->second);
             } else {
+                // if dir contains .d, add namespace to parent dir
+                if (tokens.size() > 0 && tokens[i] == ".d") {
+                    auto it = current->parent->children.find(tokens[i-1]);
+                    if(it!=current->parent->children.end()) {
+                        std::string nskey = ns + "." + tokens[i-1];
+                        current->parent->children[nskey] = std::move(it->second);
+                        current->parent->children.erase(it);
+                        current = &(current->parent->children[nskey]);
+                        current->name = nskey;
+                    }
+                }
                 std::string opath = rootDir + "/" + path;
-                current->children.insert({tokens[i], DirNode(tokens[i], {}, opath)});
+                current->children.insert({tokens[i], DirNode(tokens[i], std::unordered_map<std::string, DirNode>(), current, opath)});
                 current = &current->children.at(tokens[i]);
             } 
         }
@@ -94,13 +106,6 @@ public:
 
 private:
     DirNode root;
-
-    // bool has_dot_d(const DirNode* node) {
-    //     auto dd_it = std::find_if(node->children.begin(), node->children.end(),
-    //         [&](const DirNode& n) { return n.name == ".d"; }
-    //     );
-    //     return dd_it != node->children.end();
-    // }
 };
 
 

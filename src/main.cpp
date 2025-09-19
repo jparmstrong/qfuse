@@ -103,26 +103,6 @@ void scanDir(const std::string& ns, const std::string& rootDir) {
     DEBUG("Scan took: {:.3f} secs", static_cast<double> (utime()-start) / 1'000'000);
 }
 
-// int dirSize(const std::string& path) {
-//     int count = 0;
-//     for (auto entry : fs::directory_iterator(path))
-//         count++;
-//     return count;
-// }
-
-// void scanDir(const std::string& ns, const std::string& rootDir) {
-//     INFO("Scanning {}", rootDir);
-//     u_int64_t start = utime();
-//     for (const auto& entry : fs::recursive_directory_iterator(rootDir)) {
-//         std::string relPath = fs::relative(entry.path(), rootDir).string();
-//         if (relPath.empty()) continue;
-//         int dirCount = (entry.is_directory()) ? dirSize(entry.path()) : 0;
-//         TRACE("{} : {}", isDir ? "📁" : "  ", relPath);
-//         model.add(ns, rootDir, relPath, entry.is_directory(), dirCount);
-//     }
-//     DEBUG("Scan took: {:.3f} secs", static_cast<double> (utime()-start) / 1'000'000);
-// }
-
 void scanDirsInConfigs(const Config& config) {
     fs::path par_file = fs::path(config.dir) / "par.txt";
     if (fs::exists(par_file)) {
