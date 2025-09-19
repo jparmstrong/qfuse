@@ -88,10 +88,10 @@ void _scanDirIter(const std::string& ns, const std::string& rootDir, const std::
             if (stat((rootDir + "/" + relPath).c_str(), &st) == -1) continue;
             isDir = S_ISDIR(st.st_mode);
         }
-        int dirCount = (isDir) ? dirSize(rootDir + "/" + relPath) : 0;
-    //    DEBUG("{} : {} : {}", isDir ? "📁" : "  ", dirCount, relPath);
-        model.add(ns, rootDir, relPath, isDir, dirCount);
-        if(isDir) _scanDirIter(ns, rootDir, relPath);
+        if(isDir) 
+            _scanDirIter(ns, rootDir, relPath);
+        else 
+            model.add(ns, rootDir, relPath);
     }
     closedir(dir);
 }

@@ -24,7 +24,7 @@ static int fuse_getattr(const char *path, struct stat *stbuf, struct fuse_file_i
     DirNode* node = model.find(path);
     if(!node) return -ENOENT;
 
-    if (node->isDir) {
+    if (node->children.size()) {
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2;
     } else {
@@ -50,7 +50,7 @@ static int fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     filler(buf, "..", NULL, 0, (fuse_fill_dir_flags)0);
 
     DirNode *node = model.find(path);
-    if(node && node->isDir) {
+    if(node) {
         for(const auto& [key, child] : node->children) {
             filler(buf, child.name.c_str(), NULL, 0, (fuse_fill_dir_flags) 0);
         }
@@ -60,7 +60,7 @@ static int fuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int fuse_open(const char* path, struct fuse_file_info* fi) {
     DirNode *node = model.find(path);
-    if (!node || node->isDir) {
+    if (!node) {
         return -ENOENT;
     }
     const char* opath = node->originalPath.c_str();
