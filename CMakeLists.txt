@@ -9,7 +9,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_FILE_OFFSET_BITS=64 -Wall -Wextra -Wp
 project(qfuse)
 
 # add the executable
-add_executable(qfuse src/main.cpp)
+add_executable(qfuse 
+    src/main.cpp
+    src/fuse.cpp
+    src/model.cpp
+)
 # target_compile_definitions(qfuse PRIVATE TRACE_LOGS)
 target_compile_definitions(qfuse PRIVATE DEBUG_LOGS)
 target_compile_definitions(qfuse PRIVATE INFO_LOGS)

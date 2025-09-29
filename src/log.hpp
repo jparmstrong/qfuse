@@ -21,7 +21,7 @@
 
 #include <fmt/core.h>
 
-uint64_t utime() {
+inline uint64_t utime() {
     return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 

@@ -19,9 +19,9 @@
 #include <fstream>
 #include <csignal>
 #include <dirent.h>
+#include <sys/stat.h>
 
 #include "model.hpp"
-static Model model;
 #include "fuse.hpp"
 
 namespace fs = std::filesystem;
@@ -119,8 +119,6 @@ void scanDirsInConfigs(const Config& config) {
     }
 }
 
-static std::string mountpoint;
-
 int main(int argc, char* argv[]) {
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " <config.csv> [-f] <mount point>" << std::endl;
@@ -137,21 +135,5 @@ int main(int argc, char* argv[]) {
 #endif
 
     INFO("Done. Size: {}", model.size());
-
-    // FUSE operations setup
-    static struct fuse_operations operations = {};
-    operations.getattr = fuse_getattr;
-    operations.open    = fuse_open;
-    operations.read    = fuse_read;
-    operations.release = fuse_release;
-    operations.readdir = fuse_readdir;
-
-    int fuse_argc = argc-1;
-    std::vector<char*> fuse_argv(fuse_argc);
-    fuse_argv[0] = argv[0];
-    for(int i = 1; i < fuse_argc; i++) {
-        fuse_argv[i] = argv[i+1];
-    }
-    mountpoint = argv[fuse_argc-1];
-    return fuse_main(fuse_argc, fuse_argv.data(), &operations, nullptr);
+    return fuse_start(argc, argv);
 }
